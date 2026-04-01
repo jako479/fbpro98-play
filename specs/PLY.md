@@ -146,7 +146,7 @@ The exact command-type meanings are still being reverse engineered.
 ## 3. Reader Contract
 
 - API:
-  - `PlyFile(path)` returns a parsed file wrapper.
+  - `PlayFile(path)` returns a parsed file wrapper.
 - Behavior:
   - Read the `P95` header.
   - Validate that `len(file) == 8 + size`.
@@ -162,7 +162,7 @@ The exact command-type meanings are still being reverse engineered.
     - `special_flag`
     - `user_category`
 - Errors:
-  - Raise `InvalidPlyError` for structural issues such as bad chunk ID, size mismatch, truncated metadata, or truncated player headers.
+  - Raise `InvalidPlayFileError` for structural issues such as bad chunk ID, size mismatch, truncated metadata, or truncated player headers.
 
 ---
 
@@ -192,3 +192,4 @@ The current parser test set verifies:
 - The boundaries between pre-snap, middle-of-play, and end-of-play logic sequences are not yet documented.
 - Command type values are still largely unknown.
 - No stock/custom play flag has been identified yet in the currently documented `.ply` structure.
+

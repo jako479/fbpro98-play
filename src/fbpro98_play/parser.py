@@ -16,7 +16,7 @@ PLY_METADATA_OFFSET = PLY_PLAYER_OFFSETS_OFFSET + PLY_PLAYER_OFFSETS.size
 PLY_PLAYER_DATA_BASE = PLY_HEADER.size
 
 
-class InvalidPlyError(Exception):
+class InvalidPlayFileError(Exception):
     pass
 
 
@@ -28,7 +28,7 @@ class PlayerHeader:
     position: int
 
 
-class PlyFile:
+class PlayFile:
     class ChunkId(str, Enum):
         P95 = "P95:"
 
@@ -36,25 +36,25 @@ class PlyFile:
         self.file_path = Path(file_path)
         buffer = self.file_path.read_bytes()
         if len(buffer) < PLY_HEADER.size:
-            raise InvalidPlyError(
+            raise InvalidPlayFileError(
                 f"File too small to contain P95 header in {self.file_path}"
             )
 
         chunk_id_bytes, self.stream_length = PLY_HEADER.unpack_from(buffer, 0)
         self.chunk_id = chunk_id_bytes.decode("ascii")
         if self.chunk_id != self.ChunkId.P95:
-            raise InvalidPlyError(
+            raise InvalidPlayFileError(
                 f"Invalid header '{self.chunk_id}' at 0x0 in {self.file_path}"
             )
 
         if len(buffer) != PLY_HEADER.size + self.stream_length:
-            raise InvalidPlyError(
+            raise InvalidPlayFileError(
                 f"File size {len(buffer)} does not match P95 chunk size "
                 f"{PLY_HEADER.size + self.stream_length} in {self.file_path}"
             )
 
         if len(buffer) < PLY_METADATA_OFFSET + PLY_METADATA.size:
-            raise InvalidPlyError(
+            raise InvalidPlayFileError(
                 f"File too small to contain play metadata in {self.file_path}"
             )
 
@@ -73,7 +73,7 @@ class PlyFile:
     def _read_player_header(self, buffer: bytes, offset: int) -> PlayerHeader:
         absolute_offset = PLY_PLAYER_DATA_BASE + offset
         if len(buffer) < absolute_offset + PLY_PLAYER_HEADER.size:
-            raise InvalidPlyError(
+            raise InvalidPlayFileError(
                 f"File too small to contain player header at 0x{absolute_offset:02X} "
                 f"in {self.file_path}"
             )
@@ -88,7 +88,7 @@ class PlyFile:
 
 
 __all__ = [
-    "InvalidPlyError",
+    "InvalidPlayFileError",
     "PlayerHeader",
-    "PlyFile",
+    "PlayFile",
 ]

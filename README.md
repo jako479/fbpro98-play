@@ -23,9 +23,9 @@ pip install -e ".[dev]"
 ## Usage
 
 ```python
-from fbpro98_play import PlyFile
+from fbpro98_play import PlayFile
 
-play_file = PlyFile("some_play.ply")
+play_file = PlayFile("some_play.ply")
 print(play_file.player_offsets[0])
 print(play_file.player_headers[0].position)
 print(play_file.play_category)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from fbpro98_play import InvalidPlyError, PlayerHeader, PlyFile
+from fbpro98_play import InvalidPlayFileError, PlayFile, PlayerHeader
 
 
 TESTS_DIR = Path(__file__).resolve().parent
@@ -217,13 +217,13 @@ VALID_FIXTURES = [
 
 
 @pytest.mark.parametrize("expected", VALID_FIXTURES, ids=lambda expected: expected.fixture_name)
-def test_ply_file_reads_real_fixture_structure(expected: FixtureExpectation) -> None:
+def test_play_file_reads_real_fixture_structure(expected: FixtureExpectation) -> None:
     file_path = FIXTURE_DIR / expected.fixture_name
 
-    play_file = PlyFile(file_path)
+    play_file = PlayFile(file_path)
 
     assert play_file.file_path == file_path
-    assert play_file.chunk_id == PlyFile.ChunkId.P95
+    assert play_file.chunk_id == PlayFile.ChunkId.P95
     assert play_file.stream_length == expected.stream_length
     assert play_file.play_category == expected.play_category
     assert play_file.special_flag == expected.special_flag
@@ -248,7 +248,7 @@ def test_ply_file_reads_real_fixture_structure(expected: FixtureExpectation) -> 
 def test_real_fixture_parser_invariants(expected: FixtureExpectation) -> None:
     file_path = FIXTURE_DIR / expected.fixture_name
     file_bytes = file_path.read_bytes()
-    play_file = PlyFile(file_path)
+    play_file = PlayFile(file_path)
 
     assert len(file_bytes) == 8 + play_file.stream_length
     assert len(play_file.player_offsets) == 11
@@ -261,8 +261,9 @@ def test_real_fixture_parser_invariants(expected: FixtureExpectation) -> None:
     )
 
 
-def test_ply_file_rejects_known_invalid_fixture() -> None:
+def test_play_file_rejects_known_invalid_fixture() -> None:
     file_path = FIXTURE_DIR / "PS7Xmids.ply"
 
-    with pytest.raises(InvalidPlyError, match="File too small to contain P95 header"):
-        PlyFile(file_path)
+    with pytest.raises(InvalidPlayFileError, match="File too small to contain P95 header"):
+        PlayFile(file_path)
+
