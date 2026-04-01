@@ -1,17 +1,31 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from struct import Struct
 
 
 PLY_HEADER = Struct("<4si")
+PLY_PLAYER_OFFSETS = Struct("<11H")
 PLY_METADATA = Struct("<BBB")
-PLY_METADATA_OFFSET = PLY_HEADER.size + 22
+PLY_PLAYER_HEADER = Struct("<BBH")
+
+PLY_PLAYER_OFFSETS_OFFSET = PLY_HEADER.size
+PLY_METADATA_OFFSET = PLY_PLAYER_OFFSETS_OFFSET + PLY_PLAYER_OFFSETS.size
+PLY_PLAYER_DATA_BASE = PLY_HEADER.size
 
 
 class InvalidPlyError(Exception):
     pass
+
+
+@dataclass(frozen=True, slots=True)
+class PlayerHeader:
+    offset: int
+    rank: int
+    player_type: int
+    position: int
 
 
 class PlyFile:
@@ -33,10 +47,18 @@ class PlyFile:
                 f"Invalid header '{self.chunk_id}' at 0x0 in {self.file_path}"
             )
 
+        if len(buffer) != PLY_HEADER.size + self.stream_length:
+            raise InvalidPlyError(
+                f"File size {len(buffer)} does not match P95 chunk size "
+                f"{PLY_HEADER.size + self.stream_length} in {self.file_path}"
+            )
+
         if len(buffer) < PLY_METADATA_OFFSET + PLY_METADATA.size:
             raise InvalidPlyError(
                 f"File too small to contain play metadata in {self.file_path}"
             )
+
+        self.player_offsets = PLY_PLAYER_OFFSETS.unpack_from(buffer, PLY_PLAYER_OFFSETS_OFFSET)
 
         (
             self.play_category,
@@ -44,8 +66,29 @@ class PlyFile:
             self.user_category,
         ) = PLY_METADATA.unpack_from(buffer, PLY_METADATA_OFFSET)
 
+        self.player_headers = tuple(
+            self._read_player_header(buffer, offset) for offset in self.player_offsets
+        )
+
+    def _read_player_header(self, buffer: bytes, offset: int) -> PlayerHeader:
+        absolute_offset = PLY_PLAYER_DATA_BASE + offset
+        if len(buffer) < absolute_offset + PLY_PLAYER_HEADER.size:
+            raise InvalidPlyError(
+                f"File too small to contain player header at 0x{absolute_offset:02X} "
+                f"in {self.file_path}"
+            )
+
+        rank, player_type, position = PLY_PLAYER_HEADER.unpack_from(buffer, absolute_offset)
+        return PlayerHeader(
+            offset=offset,
+            rank=rank,
+            player_type=player_type,
+            position=position,
+        )
+
 
 __all__ = [
     "InvalidPlyError",
+    "PlayerHeader",
     "PlyFile",
 ]
