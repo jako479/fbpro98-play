@@ -17,7 +17,7 @@ class FixtureExpectation:
     fixture_name: str
     stream_length: int
     play_category: int
-    special_flag: int
+    special_category: int
     user_category: int
     player_offsets: tuple[int, ...]
     player_headers: tuple[tuple[int, int, int], ...]
@@ -28,7 +28,7 @@ VALID_FIXTURES = [
         fixture_name="AFGZoutX.ply",
         stream_length=441,
         play_category=0x9B,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0xB3,
         player_offsets=(25, 73, 97, 121, 157, 185, 209, 261, 301, 353, 389),
         player_headers=(
@@ -49,7 +49,7 @@ VALID_FIXTURES = [
         fixture_name="AF-KO.ply",
         stream_length=491,
         play_category=0x01,
-        special_flag=0x02,
+        special_category=0x02,
         user_category=0x01,
         player_offsets=(25, 75, 115, 155, 199, 239, 283, 331, 371, 411, 451),
         player_headers=(
@@ -70,7 +70,7 @@ VALID_FIXTURES = [
         fixture_name="JJ10drw3.ply",
         stream_length=389,
         play_category=0x89,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0x89,
         player_offsets=(25, 49, 85, 121, 157, 193, 229, 261, 293, 325, 357),
         player_headers=(
@@ -91,7 +91,7 @@ VALID_FIXTURES = [
         fixture_name="JJ43rlZB.ply",
         stream_length=379,
         play_category=0x88,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0x84,
         player_offsets=(25, 59, 87, 115, 143, 177, 215, 249, 277, 311, 345),
         player_headers=(
@@ -112,7 +112,7 @@ VALID_FIXTURES = [
         fixture_name="JJ7XWagR.ply",
         stream_length=517,
         play_category=0xA3,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0x97,
         player_offsets=(25, 97, 121, 149, 177, 205, 241, 275, 333, 387, 469),
         player_headers=(
@@ -133,7 +133,7 @@ VALID_FIXTURES = [
         fixture_name="KCC33rmA.ply",
         stream_length=461,
         play_category=0x82,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0x88,
         player_offsets=(25, 49, 97, 149, 197, 233, 261, 299, 335, 377, 419),
         player_headers=(
@@ -154,7 +154,7 @@ VALID_FIXTURES = [
         fixture_name="MN22PLz.ply",
         stream_length=599,
         play_category=0x92,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0xA2,
         player_offsets=(25, 87, 135, 191, 239, 301, 357, 413, 461, 499, 555),
         player_headers=(
@@ -175,7 +175,7 @@ VALID_FIXTURES = [
         fixture_name="NY26RM00.ply",
         stream_length=473,
         play_category=0x89,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0x89,
         player_offsets=(25, 73, 109, 133, 157, 193, 229, 271, 331, 367, 415),
         player_headers=(
@@ -196,7 +196,7 @@ VALID_FIXTURES = [
         fixture_name="SF1YemTy.ply",
         stream_length=381,
         play_category=0xB3,
-        special_flag=0x00,
+        special_category=0x00,
         user_category=0x87,
         player_offsets=(25, 59, 83, 107, 135, 163, 187, 233, 267, 301, 347),
         player_headers=(
@@ -226,7 +226,7 @@ def test_play_file_reads_real_fixture_structure(expected: FixtureExpectation) ->
     assert play_file.chunk_id == PlayFile.ChunkId.P95
     assert play_file.stream_length == expected.stream_length
     assert play_file.play_category == expected.play_category
-    assert play_file.special_flag == expected.special_flag
+    assert play_file.special_category == expected.special_category
     assert play_file.user_category == expected.user_category
     assert play_file.player_offsets == expected.player_offsets
     assert play_file.player_headers == tuple(

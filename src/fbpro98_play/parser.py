@@ -62,13 +62,25 @@ class PlayFile:
 
         (
             self.play_category,
-            self.special_flag,
+            self.special_category,
             self.user_category,
         ) = PLY_METADATA.unpack_from(buffer, PLY_METADATA_OFFSET)
 
         self.player_headers = tuple(
             self._read_player_header(buffer, offset) for offset in self.player_offsets
         )
+
+    @property
+    def is_offensive(self) -> bool:
+        return self.play_category % 2 == 1
+
+    @property
+    def is_defensive(self) -> bool:
+        return self.play_category % 2 == 0
+
+    @property
+    def is_special_teams(self) -> bool:
+        return self.special_category != 0
 
     def _read_player_header(self, buffer: bytes, offset: int) -> PlayerHeader:
         absolute_offset = PLY_PLAYER_DATA_BASE + offset

@@ -70,16 +70,50 @@ For observed `.ply` files:
 
 These are the currently parsed metadata bytes after the 11-entry offsets table.
 
-| Offset | Type | Name          | Description                              |
-| -----: | :--- | :------------ | :--------------------------------------- |
-| 0x001E | u8   | play_category | Category byte supplied by the game       |
-| 0x001F | u8   | special_flag  | Special-teams flag                       |
-| 0x0020 | u8   | user_category | User category byte stored in the file    |
+| Offset | Type | Name             | Description                              |
+| -----: | :--- | :--------------- | :--------------------------------------- |
+| 0x001E | u8   | play_category    | Category byte supplied by the game       |
+| 0x001F | u8   | special_category | Special-teams category (0 = not special) |
+| 0x0020 | u8   | user_category    | User category byte stored in the file    |
+
+**Offense / defense determination**
+
+The side of the ball is encoded in `play_category` (or equivalently `user_category`):
+
+- **Odd** value = offensive play
+- **Even** value = defensive play
+
+The `special_category` byte doubles as a special-teams category:
+
+- `0x00` — regular offensive or defensive play (not special teams)
+- Non-zero — special-teams play; the value identifies the special-teams
+  category per the table below
+
+For special teams, the odd/even `play_category` rule still applies:
+
+- **Odd** = kicking/offensive side (kickoff, PAT attempt, punt)
+- **Even** = receiving/defensive side (kick return, PAT block, punt return)
+
+Both the offensive and defensive play for a given special-teams category
+share the same `special_category` value.
+
+**Special-teams category values**
+
+| Value | Offensive (kicking) | Defensive (receiving)  |
+| ----- | ------------------- | ---------------------- |
+| 1     | FG/PAT              | FG/PAT Defense         |
+| 2     | Kickoff             | Kick Return            |
+| 3     | Punt                | Punt Return            |
+| 4     | Onside Kick         | Onside Return          |
+| 5     | Fake FG Run         | Fake FG Run Defense    |
+| 6     | Fake FG Pass        | Fake FG Pass Defense   |
+| 7     | Fake Punt Run       | Fake Punt Run Defense  |
+| 8     | Fake Punt Pass      | Fake Punt Pass Defense |
+| 9     | Free Kick           | Free Kick Return       |
+| 10    | Squib Kick          | Squib Return           |
 
 **Observed notes**
 
-- `special_flag` is usually `0x00` in sampled offensive/defensive plays.
-- `special_flag = 0x02` was observed in the sampled kickoff file `AF-KO.ply`.
 - No stock/custom flag has been identified in the currently parsed header region.
 
 ### 2.4 Player Records (variable length, partially understood)
@@ -88,12 +122,12 @@ Each of the 11 offsets points to a variable-length player record.
 
 The current HSL model suggests this leading structure:
 
-| Relative Offset | Type | Name     | Description |
-| --------------: | :--- | :------- | :---------- |
-| `+0x00`         | u8   | rank     | Depth / rank |
-| `+0x01`         | u8   | type     | Player record type |
-| `+0x02`         | u16  | position | Position code |
-| `+0x04`         | ...  | data     | Variable logic-box data |
+| Relative Offset | Type | Name     | Description             |
+| --------------: | :--- | :------- | :---------------------- |
+|         `+0x00` | u8   | rank     | Depth / rank            |
+|         `+0x01` | u8   | type     | Player record type      |
+|         `+0x02` | u16  | position | Position code           |
+|         `+0x04` | ...  | data     | Variable logic-box data |
 
 **Observed/inferred player type values from `fbpro_ply.hsl`**
 
@@ -121,23 +155,23 @@ The HSL describes each player as containing one or more logic-box sequences:
 
 Each logic box is modeled as:
 
-| Relative Offset | Type | Name         | Description |
-| --------------: | :--- | :----------- | :---------- |
-| `+0x00`         | u16  | numLogic     | Logic-box sequence number |
-| `+0x02`         | u16  | x            | X coordinate / field value |
-| `+0x04`         | u16  | y            | Y coordinate / field value |
-| `+0x06`         | u16  | commandCount | Number of commands |
-| `+0x08`         | ...  | commands     | Variable-length command array |
+| Relative Offset | Type | Name         | Description                   |
+| --------------: | :--- | :----------- | :---------------------------- |
+|         `+0x00` | u16  | numLogic     | Logic-box sequence number     |
+|         `+0x02` | u16  | x            | X coordinate / field value    |
+|         `+0x04` | u16  | y            | Y coordinate / field value    |
+|         `+0x06` | u16  | commandCount | Number of commands            |
+|         `+0x08` | ...  | commands     | Variable-length command array |
 
 ### 2.6 Commands (partial)
 
 The HSL models each command as:
 
-| Relative Offset | Type | Name | Description |
-| --------------: | :--- | :--- | :---------- |
-| `+0x00`         | u16  | type | Command type |
-| `+0x02`         | u16  | x    | Command data / field value |
-| `+0x04`         | u16  | y    | Command data / field value |
+| Relative Offset | Type | Name | Description                |
+| --------------: | :--- | :--- | :------------------------- |
+|         `+0x00` | u16  | type | Command type               |
+|         `+0x02` | u16  | x    | Command data / field value |
+|         `+0x04` | u16  | y    | Command data / field value |
 
 The exact command-type meanings are still being reverse engineered.
 
@@ -159,7 +193,7 @@ The exact command-type meanings are still being reverse engineered.
     - `player_offsets`
     - `player_headers`
     - `play_category`
-    - `special_flag`
+    - `special_category`
     - `user_category`
 - Errors:
   - Raise `InvalidPlayFileError` for structural issues such as bad chunk ID, size mismatch, truncated metadata, or truncated player headers.
@@ -192,4 +226,3 @@ The current parser test set verifies:
 - The boundaries between pre-snap, middle-of-play, and end-of-play logic sequences are not yet documented.
 - Command type values are still largely unknown.
 - No stock/custom play flag has been identified yet in the currently documented `.ply` structure.
-
