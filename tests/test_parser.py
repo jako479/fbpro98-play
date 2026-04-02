@@ -261,6 +261,34 @@ def test_real_fixture_parser_invariants(expected: FixtureExpectation) -> None:
     )
 
 
+def test_offensive_special_teams_category_name() -> None:
+    play_file = PlayFile(FIXTURE_DIR / "AF-KO.ply")
+    assert play_file.is_special_teams
+    assert play_file.is_offensive
+    assert play_file.category_name == "Kickoff"
+
+
+def test_defensive_special_teams_category_name() -> None:
+    play_file = PlayFile(FIXTURE_DIR / "BCFGPATD.ply")
+    assert play_file.is_special_teams
+    assert play_file.is_defensive
+    assert play_file.category_name == "FG/PAT Defense"
+
+
+def test_offensive_play_category_name() -> None:
+    play_file = PlayFile(FIXTURE_DIR / "AFGZoutX.ply")
+    assert not play_file.is_special_teams
+    assert play_file.is_offensive
+    assert play_file.category_name == "Goal Line Pass"
+
+
+def test_defensive_play_category_name() -> None:
+    play_file = PlayFile(FIXTURE_DIR / "KCC33rmA.ply")
+    assert not play_file.is_special_teams
+    assert play_file.is_defensive
+    assert play_file.category_name == "Run Middle"
+
+
 def test_play_file_rejects_known_invalid_fixture() -> None:
     file_path = FIXTURE_DIR / "PS7Xmids.ply"
 

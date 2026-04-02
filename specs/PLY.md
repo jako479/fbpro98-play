@@ -112,9 +112,62 @@ share the same `special_category` value.
 | 9     | Free Kick           | Free Kick Return       |
 | 10    | Squib Kick          | Squib Return           |
 
-**Observed notes**
+**Game category encoding in `user_category`**
 
-- No stock/custom flag has been identified in the currently parsed header region.
+The game's play category is encoded in the low 6 bits (bits 5-0) of `user_category`.
+Bit 0 follows the same odd/even rule as `play_category`: odd = offense, even = defense.
+Bits 7-6 vary across plays within the same category (purpose not yet determined).
+
+Offensive categories (bit 0 = 1):
+
+| Base (bits 5-0) | Game Category      |
+| --------------- | ------------------ |
+| 0x01            | Run Right          |
+| 0x03            | Pass Short Right   |
+| 0x05            | Run Left           |
+| 0x07            | Pass Short Left    |
+| 0x09            | Run Middle         |
+| 0x0B            | Pass Short Middle  |
+| 0x0F            | Pass Razzle Dazzle |
+| 0x13            | Pass Medium Right  |
+| 0x17            | Pass Medium Left   |
+| 0x1B            | Pass Medium Middle |
+| 0x23            | Pass Long Right    |
+| 0x31            | Goal Line Run      |
+| 0x33            | Goal Line Pass     |
+| 0xFF            | User Specific      |
+
+**Note** 0xFF (User Specific) is a play saved as Custom, Offense, Special
+
+Defensive categories (bit 0 = 0):
+
+| Base (bits 5-0) | Game Category  |
+| --------------- | -------------- |
+| 0x00            | Run Right      |
+| 0x02            | Pass Short     |
+| 0x04            | Run Left       |
+| 0x08            | Run Middle     |
+| 0x0C            | Run Dazzle     |
+| 0x0E            | Pass Dazzle    |
+| 0x12            | Pass Medium    |
+| 0x22            | Pass Long      |
+| 0x30            | Goal Line Run  |
+| 0x32            | Goal Line Pass |
+| 0xFE            | User Specific  |
+
+**Note** 0xFE (User Specific) is a play saved as Custom, Defense, Special
+
+Validated against 2092 offensive and 1879 defensive plays; 2 offensive plays
+had a base that did not match their pool directory (likely misfiled).
+
+The individual bits within the base encode play attributes:
+
+| Bit | Values                                                 |
+| --- | ------------------------------------------------------ |
+| 0   | 0 = Defense, 1 = Offense                               |
+| 1   | 0 = Run, 1 = Pass                                      |
+| 2-3 | 00 = Right, 01 = Left, 10 = Middle, 11 = Razzle Dazzle |
+| 4-5 | 00 = Short, 01 = Medium, 10 = Long, 11 = Goal Line     |
 
 ### 2.4 Player Records (variable length, partially understood)
 

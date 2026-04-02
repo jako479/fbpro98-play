@@ -5,7 +5,6 @@ from enum import Enum
 from pathlib import Path
 from struct import Struct
 
-
 PLY_HEADER = Struct("<4si")
 PLY_PLAYER_OFFSETS = Struct("<11H")
 PLY_METADATA = Struct("<BBB")
@@ -18,6 +17,64 @@ PLY_PLAYER_DATA_BASE = PLY_HEADER.size
 
 class InvalidPlayFileError(Exception):
     pass
+
+
+OFFENSIVE_CATEGORIES = {
+    0x01: "Run Right",
+    0x03: "Pass Short Right",
+    0x05: "Run Left",
+    0x07: "Pass Short Left",
+    0x09: "Run Middle",
+    0x0B: "Pass Short Middle",
+    0x0F: "Pass Razzle Dazzle",
+    0x13: "Pass Medium Right",
+    0x17: "Pass Medium Left",
+    0x1B: "Pass Medium Middle",
+    0x23: "Pass Long Right",
+    0x31: "Goal Line Run",
+    0x33: "Goal Line Pass",
+    0xFF: "User Specific",
+}
+
+DEFENSIVE_CATEGORIES = {
+    0x00: "Run Right",
+    0x02: "Pass Short",
+    0x04: "Run Left",
+    0x08: "Run Middle",
+    0x0C: "Run Dazzle",
+    0x0E: "Pass Dazzle",
+    0x12: "Pass Medium",
+    0x22: "Pass Long",
+    0x30: "Goal Line Run",
+    0x32: "Goal Line Pass",
+    0xFE: "User Specific",
+}
+
+SPECIAL_TEAMS_OFFENSIVE_CATEGORIES = {
+    0x01: "Field Goal/PAT",
+    0x02: "Kickoff",
+    0x03: "Punt",
+    0x04: "Onside Kick",
+    0x05: "Fake FG Run",
+    0x06: "Fake FG Pass",
+    0x07: "Fake Punt Run",
+    0x08: "Fake Punt Pass",
+    0x09: "Free Kick",
+    0x0A: "Squib Kick",
+}
+
+SPECIAL_TEAMS_DEFENSIVE_CATEGORIES = {
+    0x01: "Field Goal/PAT Defense",
+    0x02: "Kick Return",
+    0x03: "Punt Return",
+    0x04: "Onside Return",
+    0x05: "Fake FG Run Defense",
+    0x06: "Fake FG Pass Defense",
+    0x07: "Fake Punt Run Defense",
+    0x08: "Fake Punt Pass Defense",
+    0x09: "Free Kick Return",
+    0x0A: "Squib Return",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,9 +93,7 @@ class PlayFile:
         self.file_path = Path(file_path)
         buffer = self.file_path.read_bytes()
         if len(buffer) < PLY_HEADER.size:
-            raise InvalidPlayFileError(
-                f"File too small to contain P95 header in {self.file_path}"
-            )
+            raise InvalidPlayFileError(f"File too small to contain P95 header in {self.file_path}")
 
         chunk_id_bytes, self.stream_length = PLY_HEADER.unpack_from(buffer, 0)
         self.chunk_id = chunk_id_bytes.decode("ascii")
@@ -82,6 +137,20 @@ class PlayFile:
     def is_special_teams(self) -> bool:
         return self.special_category != 0
 
+    @property
+    def category_name(self) -> str | None:
+        if self.is_special_teams:
+            mapping = (
+                SPECIAL_TEAMS_OFFENSIVE_CATEGORIES
+                if self.is_offensive
+                else SPECIAL_TEAMS_DEFENSIVE_CATEGORIES
+            )
+            return mapping.get(self.special_category)
+        base = self.user_category & 0x3F
+        if self.is_offensive:
+            return OFFENSIVE_CATEGORIES.get(base)
+        return DEFENSIVE_CATEGORIES.get(base)
+
     def _read_player_header(self, buffer: bytes, offset: int) -> PlayerHeader:
         absolute_offset = PLY_PLAYER_DATA_BASE + offset
         if len(buffer) < absolute_offset + PLY_PLAYER_HEADER.size:
@@ -100,7 +169,11 @@ class PlayFile:
 
 
 __all__ = [
+    "DEFENSIVE_CATEGORIES",
     "InvalidPlayFileError",
+    "OFFENSIVE_CATEGORIES",
     "PlayerHeader",
     "PlayFile",
+    "SPECIAL_TEAMS_DEFENSIVE_CATEGORIES",
+    "SPECIAL_TEAMS_OFFENSIVE_CATEGORIES",
 ]
