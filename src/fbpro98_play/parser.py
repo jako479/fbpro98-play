@@ -89,40 +89,67 @@ class PlayFile:
     class ChunkId(str, Enum):
         P95 = "P95:"
 
-    def __init__(self, file_path: str | Path) -> None:
+    def __init__(
+        self,
+        file_path: str | Path,
+        chunk_id: str,
+        stream_length: int,
+        play_category: int,
+        special_category: int,
+        user_category: int,
+        player_offsets: tuple[int, ...],
+        player_headers: tuple[PlayerHeader, ...],
+    ) -> None:
         self.file_path = Path(file_path)
-        buffer = self.file_path.read_bytes()
+        self.chunk_id = chunk_id
+        self.stream_length = stream_length
+        self.play_category = play_category
+        self.special_category = special_category
+        self.user_category = user_category
+        self.player_offsets = player_offsets
+        self.player_headers = player_headers
+
+    @classmethod
+    def from_file(cls, file_path: str | Path) -> PlayFile:
+        """Read and parse a .ply file."""
+        path = Path(file_path)
+        return cls.from_buffer(path.read_bytes(), file_path)
+
+    @classmethod
+    def from_buffer(cls, buffer: bytes, file_path: str | Path = "<buffer>") -> PlayFile:
+        """Parse a .ply from raw bytes. Separates I/O from parsing."""
+        path = Path(file_path)
+
         if len(buffer) < PLY_HEADER.size:
-            raise InvalidPlayFileError(f"File too small to contain P95 header in {self.file_path}")
+            raise InvalidPlayFileError(f"File too small to contain P95 header in {path}")
 
-        chunk_id_bytes, self.stream_length = PLY_HEADER.unpack_from(buffer, 0)
-        self.chunk_id = chunk_id_bytes.decode("ascii")
-        if self.chunk_id != self.ChunkId.P95:
-            raise InvalidPlayFileError(
-                f"Invalid header '{self.chunk_id}' at 0x0 in {self.file_path}"
-            )
+        chunk_id_bytes, stream_length = PLY_HEADER.unpack_from(buffer, 0)
+        chunk_id = chunk_id_bytes.decode("ascii")
+        if chunk_id != cls.ChunkId.P95:
+            raise InvalidPlayFileError(f"Invalid header '{chunk_id}' at 0x0 in {path}")
 
-        if len(buffer) != PLY_HEADER.size + self.stream_length:
+        if len(buffer) != PLY_HEADER.size + stream_length:
             raise InvalidPlayFileError(
                 f"File size {len(buffer)} does not match P95 chunk size "
-                f"{PLY_HEADER.size + self.stream_length} in {self.file_path}"
+                f"{PLY_HEADER.size + stream_length} in {path}"
             )
 
         if len(buffer) < PLY_METADATA_OFFSET + PLY_METADATA.size:
-            raise InvalidPlayFileError(
-                f"File too small to contain play metadata in {self.file_path}"
-            )
+            raise InvalidPlayFileError(f"File too small to contain play metadata in {path}")
 
-        self.player_offsets = PLY_PLAYER_OFFSETS.unpack_from(buffer, PLY_PLAYER_OFFSETS_OFFSET)
+        player_offsets = PLY_PLAYER_OFFSETS.unpack_from(buffer, PLY_PLAYER_OFFSETS_OFFSET)
 
-        (
-            self.play_category,
-            self.special_category,
-            self.user_category,
-        ) = PLY_METADATA.unpack_from(buffer, PLY_METADATA_OFFSET)
+        play_category, special_category, user_category = PLY_METADATA.unpack_from(
+            buffer, PLY_METADATA_OFFSET,
+        )
 
-        self.player_headers = tuple(
-            self._read_player_header(buffer, offset) for offset in self.player_offsets
+        player_headers = tuple(
+            cls._parse_player_header(buffer, offset, path) for offset in player_offsets
+        )
+
+        return cls(
+            file_path, chunk_id, stream_length, play_category,
+            special_category, user_category, player_offsets, player_headers,
         )
 
     @property
@@ -151,12 +178,14 @@ class PlayFile:
             return OFFENSIVE_CATEGORIES.get(base)
         return DEFENSIVE_CATEGORIES.get(base)
 
-    def _read_player_header(self, buffer: bytes, offset: int) -> PlayerHeader:
+    @staticmethod
+    def _parse_player_header(
+        buffer: bytes, offset: int, path: Path,
+    ) -> PlayerHeader:
         absolute_offset = PLY_PLAYER_DATA_BASE + offset
         if len(buffer) < absolute_offset + PLY_PLAYER_HEADER.size:
             raise InvalidPlayFileError(
-                f"File too small to contain player header at 0x{absolute_offset:02X} "
-                f"in {self.file_path}"
+                f"File too small to contain player header at 0x{absolute_offset:02X} in {path}"
             )
 
         rank, player_type, position = PLY_PLAYER_HEADER.unpack_from(buffer, absolute_offset)
@@ -166,14 +195,3 @@ class PlayFile:
             player_type=player_type,
             position=position,
         )
-
-
-__all__ = [
-    "DEFENSIVE_CATEGORIES",
-    "InvalidPlayFileError",
-    "OFFENSIVE_CATEGORIES",
-    "PlayerHeader",
-    "PlayFile",
-    "SPECIAL_TEAMS_DEFENSIVE_CATEGORIES",
-    "SPECIAL_TEAMS_OFFENSIVE_CATEGORIES",
-]

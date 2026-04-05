@@ -233,7 +233,7 @@ The exact command-type meanings are still being reverse engineered.
 ## 3. Reader Contract
 
 - API:
-  - `PlayFile(path)` returns a parsed file wrapper.
+  - `PlayFile.from_file(path)` returns a parsed file wrapper.
 - Behavior:
   - Read the `P95` header.
   - Validate that `len(file) == 8 + size`.

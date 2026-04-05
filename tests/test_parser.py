@@ -220,7 +220,7 @@ VALID_FIXTURES = [
 def test_play_file_reads_real_fixture_structure(expected: FixtureExpectation) -> None:
     file_path = FIXTURE_DIR / expected.fixture_name
 
-    play_file = PlayFile(file_path)
+    play_file = PlayFile.from_file(file_path)
 
     assert play_file.file_path == file_path
     assert play_file.chunk_id == PlayFile.ChunkId.P95
@@ -248,7 +248,7 @@ def test_play_file_reads_real_fixture_structure(expected: FixtureExpectation) ->
 def test_real_fixture_parser_invariants(expected: FixtureExpectation) -> None:
     file_path = FIXTURE_DIR / expected.fixture_name
     file_bytes = file_path.read_bytes()
-    play_file = PlayFile(file_path)
+    play_file = PlayFile.from_file(file_path)
 
     assert len(file_bytes) == 8 + play_file.stream_length
     assert len(play_file.player_offsets) == 11
@@ -262,28 +262,28 @@ def test_real_fixture_parser_invariants(expected: FixtureExpectation) -> None:
 
 
 def test_offensive_special_teams_category_name() -> None:
-    play_file = PlayFile(FIXTURE_DIR / "AF-KO.ply")
+    play_file = PlayFile.from_file(FIXTURE_DIR / "AF-KO.ply")
     assert play_file.is_special_teams
     assert play_file.is_offensive
     assert play_file.category_name == "Kickoff"
 
 
 def test_defensive_special_teams_category_name() -> None:
-    play_file = PlayFile(FIXTURE_DIR / "BCFGPATD.ply")
+    play_file = PlayFile.from_file(FIXTURE_DIR / "BCFGPATD.ply")
     assert play_file.is_special_teams
     assert play_file.is_defensive
-    assert play_file.category_name == "FG/PAT Defense"
+    assert play_file.category_name == "Field Goal/PAT Defense"
 
 
 def test_offensive_play_category_name() -> None:
-    play_file = PlayFile(FIXTURE_DIR / "AFGZoutX.ply")
+    play_file = PlayFile.from_file(FIXTURE_DIR / "AFGZoutX.ply")
     assert not play_file.is_special_teams
     assert play_file.is_offensive
     assert play_file.category_name == "Goal Line Pass"
 
 
 def test_defensive_play_category_name() -> None:
-    play_file = PlayFile(FIXTURE_DIR / "KCC33rmA.ply")
+    play_file = PlayFile.from_file(FIXTURE_DIR / "KCC33rmA.ply")
     assert not play_file.is_special_teams
     assert play_file.is_defensive
     assert play_file.category_name == "Run Middle"
@@ -293,5 +293,5 @@ def test_play_file_rejects_known_invalid_fixture() -> None:
     file_path = FIXTURE_DIR / "PS7Xmids.ply"
 
     with pytest.raises(InvalidPlayFileError, match="File too small to contain P95 header"):
-        PlayFile(file_path)
+        PlayFile.from_file(file_path)
 
