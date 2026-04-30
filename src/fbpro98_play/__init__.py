@@ -1,19 +1,27 @@
-from .parser import (
+"""fbpro98-play — Parser for Front Page Sports Football Pro '98 play (.ply) files."""
+
+from fbpro98_play.model import (
     DEFENSIVE_CATEGORIES,
-    InvalidPlayFileError,
     OFFENSIVE_CATEGORIES,
-    PlayerHeader,
-    PlayFile,
     SPECIAL_TEAMS_DEFENSIVE_CATEGORIES,
     SPECIAL_TEAMS_OFFENSIVE_CATEGORIES,
+    PlayerHeader,
+    PlayFile,
+)
+from fbpro98_play.reader import (
+    InvalidPlayFileError,
+    parse_play,
+    read_play,
 )
 
 __all__ = [
     "DEFENSIVE_CATEGORIES",
-    "InvalidPlayFileError",
     "OFFENSIVE_CATEGORIES",
-    "PlayerHeader",
-    "PlayFile",
     "SPECIAL_TEAMS_DEFENSIVE_CATEGORIES",
     "SPECIAL_TEAMS_OFFENSIVE_CATEGORIES",
+    "InvalidPlayFileError",
+    "PlayFile",
+    "PlayerHeader",
+    "parse_play",
+    "read_play",
 ]

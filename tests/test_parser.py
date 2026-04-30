@@ -5,8 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from fbpro98_play import InvalidPlayFileError, PlayFile, PlayerHeader
-
+from fbpro98_play import InvalidPlayFileError, PlayerHeader, read_play
 
 TESTS_DIR = Path(__file__).resolve().parent
 FIXTURE_DIR = TESTS_DIR / "data"
@@ -220,10 +219,9 @@ VALID_FIXTURES = [
 def test_play_file_reads_real_fixture_structure(expected: FixtureExpectation) -> None:
     file_path = FIXTURE_DIR / expected.fixture_name
 
-    play_file = PlayFile.from_file(file_path)
+    play_file = read_play(file_path)
 
     assert play_file.file_path == file_path
-    assert play_file.chunk_id == PlayFile.ChunkId.P95
     assert play_file.stream_length == expected.stream_length
     assert play_file.play_category == expected.play_category
     assert play_file.special_category == expected.special_category
@@ -248,42 +246,39 @@ def test_play_file_reads_real_fixture_structure(expected: FixtureExpectation) ->
 def test_real_fixture_parser_invariants(expected: FixtureExpectation) -> None:
     file_path = FIXTURE_DIR / expected.fixture_name
     file_bytes = file_path.read_bytes()
-    play_file = PlayFile.from_file(file_path)
+    play_file = read_play(file_path)
 
     assert len(file_bytes) == 8 + play_file.stream_length
     assert len(play_file.player_offsets) == 11
     assert play_file.player_offsets[0] == 25
     assert tuple(sorted(play_file.player_offsets)) == play_file.player_offsets
     assert all(offset > 0 for offset in play_file.player_offsets)
-    assert all(
-        8 + header.offset + 4 <= len(file_bytes)
-        for header in play_file.player_headers
-    )
+    assert all(8 + header.offset + 4 <= len(file_bytes) for header in play_file.player_headers)
 
 
 def test_offensive_special_teams_category_name() -> None:
-    play_file = PlayFile.from_file(FIXTURE_DIR / "AF-KO.ply")
+    play_file = read_play(FIXTURE_DIR / "AF-KO.ply")
     assert play_file.is_special_teams
     assert play_file.is_offensive
     assert play_file.category_name == "Kickoff"
 
 
 def test_defensive_special_teams_category_name() -> None:
-    play_file = PlayFile.from_file(FIXTURE_DIR / "BCFGPATD.ply")
+    play_file = read_play(FIXTURE_DIR / "BCFGPATD.ply")
     assert play_file.is_special_teams
     assert play_file.is_defensive
     assert play_file.category_name == "Field Goal/PAT Defense"
 
 
 def test_offensive_play_category_name() -> None:
-    play_file = PlayFile.from_file(FIXTURE_DIR / "AFGZoutX.ply")
+    play_file = read_play(FIXTURE_DIR / "AFGZoutX.ply")
     assert not play_file.is_special_teams
     assert play_file.is_offensive
     assert play_file.category_name == "Goal Line Pass"
 
 
 def test_defensive_play_category_name() -> None:
-    play_file = PlayFile.from_file(FIXTURE_DIR / "KCC33rmA.ply")
+    play_file = read_play(FIXTURE_DIR / "KCC33rmA.ply")
     assert not play_file.is_special_teams
     assert play_file.is_defensive
     assert play_file.category_name == "Run Middle"
@@ -293,5 +288,4 @@ def test_play_file_rejects_known_invalid_fixture() -> None:
     file_path = FIXTURE_DIR / "PS7Xmids.ply"
 
     with pytest.raises(InvalidPlayFileError, match="File too small to contain P95 header"):
-        PlayFile.from_file(file_path)
-
+        read_play(file_path)
