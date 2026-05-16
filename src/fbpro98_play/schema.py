@@ -1,6 +1,6 @@
-"""Binary chunk schema for the FbPro98 .ply file format.
+"""Binary block schema for the FbPro98 .ply file format.
 
-Defines the `struct.Struct` layouts and chunk identifier (P95) shared by the
+Defines the `struct.Struct` layouts and block identifier (P95) shared by the
 reader. See specs/ply.md for full .ply format documentation.
 """
 

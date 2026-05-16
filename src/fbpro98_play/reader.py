@@ -1,6 +1,6 @@
 """Parse FbPro98 .ply play files into PlayFile objects.
 
-Decodes the P95 chunk: header, 11 player offsets, play metadata
+Decodes the P95 block: header, 11 player offsets, play metadata
 (play_category / special_category / user_category), and per-player headers.
 """
 
@@ -41,14 +41,14 @@ def parse_play(buffer: bytes, path: StrPath = "<buffer>") -> PlayFile:
     if len(buffer) < PLY_HEADER.size:
         raise InvalidPlayFileError(f"File too small to contain P95 header in {file_path}")
 
-    chunk_id, stream_length = PLY_HEADER.unpack_from(buffer, 0)
-    if chunk_id != ID_P95:
-        chunk_id_str = chunk_id.decode("ASCII", errors="replace")
-        raise InvalidPlayFileError(f"Invalid header '{chunk_id_str}' at 0x0 in {file_path}")
+    block_id, stream_length = PLY_HEADER.unpack_from(buffer, 0)
+    if block_id != ID_P95:
+        block_id_str = block_id.decode("ASCII", errors="replace")
+        raise InvalidPlayFileError(f"Invalid header '{block_id_str}' at 0x0 in {file_path}")
 
     if len(buffer) != PLY_HEADER.size + stream_length:
         raise InvalidPlayFileError(
-            f"File size {len(buffer)} does not match P95 chunk size {PLY_HEADER.size + stream_length} in {file_path}"
+            f"File size {len(buffer)} does not match P95 block size {PLY_HEADER.size + stream_length} in {file_path}"
         )
 
     if len(buffer) < PLY_METADATA_OFFSET + PLY_METADATA.size:

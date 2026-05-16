@@ -1,122 +1,62 @@
 # Front Page Sports Football Pro '98 `.ply` File Format (Little-Endian)
 
-**Status:** Draft
-**Owner:** FBPro98 Play Library
-**Encoding:** Integers are little-endian; chunk IDs are ASCII.
+- **Status:** Draft
+- **Owner:** FBPro98 Play Library
+- **Encoding:** Integers little-endian; block IDs ASCII.
 
 ---
 
 ## 1. Container Overview
 
-A `.ply` currently appears to contain a single `P95` chunk.
-
-Each file begins with a standard chunk header:
-
-1. **ID** - 4 ASCII bytes
-2. **size** - 4-byte little-endian integer
-
-For observed `.ply` files:
-
-- `ID` is always `"P95:"`
-- `size` is the payload length after the 8-byte chunk header
-- total file length is `8 + size`
+A `.ply` contains a single `P95` block: `ID (4 bytes)` + `size (4 bytes)` + data, where `size` excludes the 8-byte header. Total file length = `8 + size`.
 
 ---
 
-## 2. Chunk: P95 - Play Definition
+## 2. Block: P95 — Play Definition
 
 ### 2.1 Header (8 bytes)
 
-| Offset | Type    | Name | Description                                         |
-| -----: | :------ | :--- | :-------------------------------------------------- |
-| 0x0000 | char[4] | ID   | `"P95:"`                                            |
-| 0x0004 | u32     | size | Payload size in bytes (everything after this field) |
+| Offset | Type    | Name | Description                                      |
+| -----: | :------ | :--- | :----------------------------------------------- |
+| 0x0000 | char[4] | ID   | `"P95:"`                                         |
+| 0x0004 | u32     | size | Data size in bytes (everything after this field) |
 
-**Notes**
+The parser rejects any block ID other than `"P95:"`.
 
-- Total file length = `8 + size`.
-- The current parser rejects any chunk ID other than `"P95:"`.
+### 2.2 Player Offsets Table (22 bytes, data offset `0x00`)
 
-### 2.2 Player Offsets Table (fixed 22 bytes)
+11 × `u16` little-endian, each pointing to a player record. Offset base is the end of the 8-byte header (file offset `0x08`). First entry is `0x0019` in every sampled real file.
 
-- Exactly 11 entries.
-- Each entry is a `u16` little-endian value.
-- Each offset points to one player record.
-- Offsets are relative to the end of the 8-byte header (byte offset `0x08`).
+Slot order (from `fbpro_ply.hsl`): QB, C, LT, LG, RG, RT, TE, RWR, LWR, LHB, RHB.
 
-| Field       | Value / Rule                                   |
-| :---------- | :--------------------------------------------- |
-| Count       | 11                                             |
-| Entry type  | `u16` (little-endian)                          |
-| Total size  | `11 * 2 = 22 bytes`                            |
-| Offset base | End of `P95` header (byte offset `0x08`)       |
-| First entry | Observed as `0x0019` in all sampled real files |
-
-**Observed slot order from `fbpro_ply.hsl` comments**
-
-1. QB
-2. C
-3. LT
-4. LG
-5. RG
-6. RT
-7. TE
-8. RWR
-9. LWR
-10. LHB
-11. RHB
-
-### 2.3 Metadata (fixed 3 bytes)
-
-These are the currently parsed metadata bytes after the 11-entry offsets table.
+### 2.3 Metadata (3 bytes, file offset `0x1E`)
 
 | Offset | Type | Name             | Description                              |
 | -----: | :--- | :--------------- | :--------------------------------------- |
 | 0x001E | u8   | play_category    | Category byte supplied by the game       |
 | 0x001F | u8   | special_category | Special-teams category (0 = not special) |
-| 0x0020 | u8   | user_category    | User category byte stored in the file    |
+| 0x0020 | u8   | user_category    | User category byte                       |
 
-**Offense / defense determination**
+**Side of ball:** bit 0 of `play_category` (or `user_category`). Odd = offense / kicking side; even = defense / receiving side. The same odd/even rule applies for special teams.
 
-The side of the ball is encoded in `play_category` (or equivalently `user_category`):
+**Special-teams category** (`special_category`): `0x00` = not special teams; otherwise:
 
-- **Odd** value = offensive play
-- **Even** value = defensive play
+| Value  | Offensive (kicking) | Defensive (receiving)  |
+| ------ | ------------------- | ---------------------- |
+| `0x01` | FG/PAT              | FG/PAT Defense         |
+| `0x02` | Kickoff             | Kick Return            |
+| `0x03` | Punt                | Punt Return            |
+| `0x04` | Onside Kick         | Onside Return          |
+| `0x05` | Fake FG Run         | Fake FG Run Defense    |
+| `0x06` | Fake FG Pass        | Fake FG Pass Defense   |
+| `0x07` | Fake Punt Run       | Fake Punt Run Defense  |
+| `0x08` | Fake Punt Pass      | Fake Punt Pass Defense |
+| `0x09` | Free Kick           | Free Kick Return       |
+| `0x0A` | Squib Kick          | Squib Return           |
 
-The `special_category` byte doubles as a special-teams category:
+Both sides of the same special-teams category share the same `special_category` value.
 
-- `0x00` — regular offensive or defensive play (not special teams)
-- Non-zero — special-teams play; the value identifies the special-teams
-  category per the table below
-
-For special teams, the odd/even `play_category` rule still applies:
-
-- **Odd** = kicking/offensive side (kickoff, PAT attempt, punt)
-- **Even** = receiving/defensive side (kick return, PAT block, punt return)
-
-Both the offensive and defensive play for a given special-teams category
-share the same `special_category` value.
-
-**Special-teams category values**
-
-| Value | Offensive (kicking) | Defensive (receiving)  |
-| ----- | ------------------- | ---------------------- |
-| 1     | FG/PAT              | FG/PAT Defense         |
-| 2     | Kickoff             | Kick Return            |
-| 3     | Punt                | Punt Return            |
-| 4     | Onside Kick         | Onside Return          |
-| 5     | Fake FG Run         | Fake FG Run Defense    |
-| 6     | Fake FG Pass        | Fake FG Pass Defense   |
-| 7     | Fake Punt Run       | Fake Punt Run Defense  |
-| 8     | Fake Punt Pass      | Fake Punt Pass Defense |
-| 9     | Free Kick           | Free Kick Return       |
-| 10    | Squib Kick          | Squib Return           |
-
-**Game category encoding in `user_category`**
-
-The game's play category is encoded in the low 6 bits (bits 5-0) of `user_category`.
-Bit 0 follows the same odd/even rule as `play_category`: odd = offense, even = defense.
-Bits 7-6 vary across plays within the same category (purpose not yet determined).
+**Game category encoding in `user_category`:** the game's play category is in bits 5–0; bits 7–6 vary across plays in the same category (purpose unknown). Bit 0 follows the same odd/even rule as `play_category`.
 
 Offensive categories (bit 0 = 1):
 
@@ -137,8 +77,6 @@ Offensive categories (bit 0 = 1):
 | 0x33            | Goal Line Pass     |
 | 0xFF            | User Specific      |
 
-**Note** 0xFF (User Specific) is a play saved as Custom, Offense, Special
-
 Defensive categories (bit 0 = 0):
 
 | Base (bits 5-0) | Game Category  |
@@ -155,12 +93,9 @@ Defensive categories (bit 0 = 0):
 | 0x32            | Goal Line Pass |
 | 0xFE            | User Specific  |
 
-**Note** 0xFE (User Specific) is a play saved as Custom, Defense, Special
+`0xFF` / `0xFE` (User Specific) is a play saved as Custom + Special. Validated against 2092 offensive and 1879 defensive plays; 2 offensive plays had a base that didn't match their pool directory (likely misfiled).
 
-Validated against 2092 offensive and 1879 defensive plays; 2 offensive plays
-had a base that did not match their pool directory (likely misfiled).
-
-The individual bits within the base encode play attributes:
+Bit-level encoding within the base:
 
 | Bit | Values                                                 |
 | --- | ------------------------------------------------------ |
@@ -171,9 +106,7 @@ The individual bits within the base encode play attributes:
 
 ### 2.4 Player Records (variable length, partially understood)
 
-Each of the 11 offsets points to a variable-length player record.
-
-The current HSL model suggests this leading structure:
+Each of the 11 offsets points to a variable-length player record. Leading structure (per HSL):
 
 | Relative Offset | Type | Name     | Description             |
 | --------------: | :--- | :------- | :---------------------- |
@@ -182,31 +115,11 @@ The current HSL model suggests this leading structure:
 |         `+0x02` | u16  | position | Position code           |
 |         `+0x04` | ...  | data     | Variable logic-box data |
 
-**Observed/inferred player type values from `fbpro_ply.hsl`**
-
-- `0x01` = pre-snap player
-- `0x02` = after-snap player
-- `0x04` = kicking player
-
-**Observed/inferred position codes from `fbpro_ply.hsl` comments**
-
-- `0x20` = QB
-- `0x12` = C
-- `0x11` = T
-- `0x10` = G
-- `0x81` = TE
-- `0x80` = WR
-- `0x42` = HB
+Observed `type` values: `0x01` pre-snap, `0x02` after-snap, `0x04` kicking. Observed `position` codes: `0x20` QB, `0x12` C, `0x11` T, `0x10` G, `0x81` TE, `0x80` WR, `0x42` HB.
 
 ### 2.5 Logic Boxes (partial)
 
-The HSL describes each player as containing one or more logic-box sequences:
-
-- pre-snap logic boxes
-- middle-of-play logic boxes
-- end-of-play logic boxes
-
-Each logic box is modeled as:
+Each player contains pre-snap, middle-of-play, and end-of-play logic-box sequences:
 
 | Relative Offset | Type | Name         | Description                   |
 | --------------: | :--- | :----------- | :---------------------------- |
@@ -218,64 +131,34 @@ Each logic box is modeled as:
 
 ### 2.6 Commands (partial)
 
-The HSL models each command as:
-
 | Relative Offset | Type | Name | Description                |
 | --------------: | :--- | :--- | :------------------------- |
 |         `+0x00` | u16  | type | Command type               |
 |         `+0x02` | u16  | x    | Command data / field value |
 |         `+0x04` | u16  | y    | Command data / field value |
 
-The exact command-type meanings are still being reverse engineered.
+Command type values are not yet reverse engineered.
 
 ---
 
 ## 3. Reader Contract
 
-- API:
-  - `PlayFile.from_file(path)` returns a parsed file wrapper.
-- Behavior:
-  - Read the `P95` header.
-  - Validate that `len(file) == 8 + size`.
-  - Read the 11-entry player offsets table.
-  - Validate that the file is large enough to contain the 3 known metadata bytes.
-  - Read the first 4 bytes of each player record as a `PlayerHeader`.
-  - Expose:
-    - `chunk_id`
-    - `stream_length`
-    - `player_offsets`
-    - `player_headers`
-    - `play_category`
-    - `special_category`
-    - `user_category`
-- Errors:
-  - Raise `InvalidPlayFileError` for structural issues such as bad chunk ID, size mismatch, truncated metadata, or truncated player headers.
+- API: `PlayFile.from_file(path)` → parsed wrapper.
+- Validates `ID == "P95:"`, `len(file) == 8 + size`, file large enough for the offsets table + 3 metadata bytes + 11 player headers.
+- Exposes: `block_id`, `stream_length`, `player_offsets`, `player_headers`, `play_category`, `special_category`, `user_category`.
+- Raises `InvalidPlayFileError` for bad block ID, size mismatch, or truncated metadata / player headers.
 
 ---
 
 ## 4. Validation & Test Vectors
 
-Current checked-in test fixtures cover:
-
-- offensive plays
-- defensive plays
-- special-teams plays
-- one known invalid zero-byte file
-
-The current parser test set verifies:
-
-- `ID == "P95:"`
-- `len(file) == 8 + size` for all checked-in valid fixtures
-- exact 11-player offset tables for all checked-in valid fixtures
-- exact first-player-header tuples for all 11 players in all checked-in valid fixtures
-- metadata bytes at offsets `0x1E..0x20`
-- rejection of a zero-byte invalid file
+Fixtures cover offensive, defensive, special-teams plays, plus one zero-byte invalid file. Tests verify `ID == "P95:"`, `len(file) == 8 + size`, exact offset tables and first-player-header tuples for all valid fixtures, the 3 metadata bytes at `0x1E..0x20`, and rejection of the zero-byte file.
 
 ---
 
 ## 5. Open Questions
 
-- The full player-record layout is not yet specified.
-- The boundaries between pre-snap, middle-of-play, and end-of-play logic sequences are not yet documented.
-- Command type values are still largely unknown.
-- No stock/custom play flag has been identified yet in the currently documented `.ply` structure.
+- Full player-record layout
+- Boundaries between pre-snap / middle-of-play / end-of-play logic sequences
+- Command type values
+- Whether `.ply` carries a stock/custom play flag
