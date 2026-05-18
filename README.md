@@ -13,9 +13,9 @@ pip install -e ".[dev]"
 ## Usage
 
 ```python
-from fbpro98_play import PlayFile
+from fbpro98_play import read_play
 
-play_file = PlayFile.from_file("some_play.ply")
+play_file = read_play("some_play.ply")
 print(play_file.play_category)
 print(play_file.special_category)
 print(play_file.user_category)

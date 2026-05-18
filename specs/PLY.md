@@ -143,16 +143,16 @@ Command type values are not yet reverse engineered.
 
 ## 3. Reader Contract
 
-- API: `PlayFile.from_file(path)` → parsed wrapper.
+- API: `read_play(path)` → parsed `PlayFile`; `parse_play(buffer, path)` parses raw bytes.
 - Validates `ID == "P95:"`, `len(file) == 8 + size`, file large enough for the offsets table + 3 metadata bytes + 11 player headers.
-- Exposes: `block_id`, `stream_length`, `player_offsets`, `player_headers`, `play_category`, `special_category`, `user_category`.
+- Exposes: `file_path`, `stream_length`, `player_offsets`, `player_headers`, `play_category`, `special_category`, `user_category`.
 - Raises `InvalidPlayFileError` for bad block ID, size mismatch, or truncated metadata / player headers.
 
 ---
 
 ## 4. Validation & Test Vectors
 
-Fixtures cover offensive, defensive, special-teams plays, plus one zero-byte invalid file. Tests verify `ID == "P95:"`, `len(file) == 8 + size`, exact offset tables and first-player-header tuples for all valid fixtures, the 3 metadata bytes at `0x1E..0x20`, and rejection of the zero-byte file.
+Fixtures cover offensive, defensive, special-teams plays, plus one zero-byte invalid file. Tests verify `len(file) == 8 + size`, exact offset tables and player-header tuples for all valid fixtures, the 3 metadata bytes at `0x1E..0x20`, resolved category names, and rejection of the zero-byte file.
 
 ---
 

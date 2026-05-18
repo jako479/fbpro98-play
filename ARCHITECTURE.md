@@ -10,10 +10,11 @@ For system-level context (how this fits with `pnfl-playpool` and `pnfl-playcatal
 src/fbpro98_play/
 ├── __init__.py    # public API re-exports
 ├── model.py       # PlayFile, PlayerHeader, category constants
-└── reader.py      # parse_play, read_play, InvalidPlayFileError
+├── reader.py      # parse_play, read_play, InvalidPlayFileError
+└── schema.py      # struct layouts and P95 block identifier
 ```
 
-`specs/ply.hexpat` documents the on-disk byte layout.
+`specs/fbpro98-ply.hexpat` documents the on-disk byte layout.
 
 ## What this package does
 
