@@ -1,4 +1,4 @@
-"""Parses a Front Page Sports Football Pro '98 play (.ply)."""
+"""Library for parsing a Front Page Sports Football Pro '98 play file (.ply)."""
 
 from fbpro98_play.model import (
     DEFENSIVE_CATEGORIES,
