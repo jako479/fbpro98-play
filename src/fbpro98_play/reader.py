@@ -24,7 +24,7 @@ from fbpro98_play.schema import (
 StrPath = str | PathLike[str]
 
 
-class InvalidPlayFileError(Exception):
+class InvalidPlayFileError(ValueError):
     """Raised when a `.ply` file is structurally invalid."""
 
 
