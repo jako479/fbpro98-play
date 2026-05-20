@@ -29,13 +29,41 @@ class InvalidPlayFileError(Exception):
 
 
 def read_play(path: StrPath) -> PlayFile:
-    """Read and parse a `.ply` play file."""
+    """Read and parse a .ply play file from disk.
+
+    Args:
+        path: Filesystem path to the .ply file.
+
+    Returns:
+        Parsed PlayFile.
+
+    Raises:
+        InvalidPlayFileError: If the file is not a valid .ply (bad block ID,
+            size mismatch, or truncated structure).
+        OSError: If the file cannot be opened or read (subclasses include
+            FileNotFoundError, PermissionError, IsADirectoryError).
+    """
     file_path = Path(path)
     return parse_play(file_path.read_bytes(), file_path)
 
 
 def parse_play(buffer: bytes, path: StrPath = "<buffer>") -> PlayFile:
-    """Parse a `.ply` play from raw bytes."""
+    """Parse a .ply play from raw bytes.
+
+    Args:
+        buffer: Full contents of a .ply file.
+        path: Path used only in error messages and on the returned PlayFile's
+            file_path attribute. Defaults to "<buffer>" when parsing data that
+            did not come from disk.
+
+    Returns:
+        Parsed PlayFile.
+
+    Raises:
+        InvalidPlayFileError: If the buffer does not contain a valid P95 block.
+            Triggered by a wrong block ID, mismatched size field, or a buffer
+            too short to contain the metadata or any player header.
+    """
     file_path = Path(path)
 
     if len(buffer) < PLY_HEADER.size:

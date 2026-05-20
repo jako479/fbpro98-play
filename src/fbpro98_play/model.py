@@ -8,10 +8,7 @@ and special teams.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from os import PathLike
 from pathlib import Path
-
-StrPath = str | PathLike[str]
 
 
 OFFENSIVE_CATEGORIES = {
@@ -74,55 +71,89 @@ SPECIAL_TEAMS_DEFENSIVE_CATEGORIES = {
 
 @dataclass(frozen=True, slots=True)
 class PlayerHeader:
-    """One player's header inside a .ply: file offset, depth-chart rank, type code, and position code."""
+    """One player's header within a .ply play file.
+
+    Parsed from the leading bytes of each player record. See specs/ply.md
+    section 2.4 for the on-disk layout.
+    """
 
     offset: int
+    """Byte offset of this player's record, relative to file offset 0x08
+    (the end of the 8-byte P95 header)."""
+
     rank: int
+    """Depth-chart rank (u8 at +0x00 of the player record)."""
+
     player_type: int
+    """Player record type code (u8 at +0x01). Observed values: 0x01 pre-snap,
+    0x02 after-snap, 0x04 kicking."""
+
     position: int
+    """Position code (u16 at +0x02). Observed values: 0x20 QB, 0x12 C,
+    0x11 T, 0x10 G, 0x81 TE, 0x80 WR, 0x42 HB."""
 
 
+@dataclass(frozen=True, slots=True)
 class PlayFile:
-    """Parsed .ply file: stream length, category fields, and per-player headers."""
+    """Parsed FbPro98 .ply play file.
 
-    def __init__(
-        self,
-        file_path: StrPath,
-        stream_length: int,
-        play_category: int,
-        special_category: int,
-        user_category: int,
-        player_offsets: tuple[int, ...],
-        player_headers: tuple[PlayerHeader, ...],
-    ) -> None:
-        self.file_path = Path(file_path)
-        self.stream_length = stream_length
-        self.play_category = play_category
-        self.special_category = special_category
-        self.user_category = user_category
-        self.player_offsets = player_offsets
-        self.player_headers = player_headers
+    See specs/ply.md for the on-disk binary format these attributes correspond to.
+    """
+
+    file_path: Path
+    """Path the play was read from. When parsed from raw bytes via parse_play()
+    with no explicit path, this is Path("<buffer>")."""
+
+    stream_length: int
+    """Size of the P95 data stream in bytes (file size minus the 8-byte block
+    header)."""
+
+    play_category: int
+    """Category byte at file offset 0x1E. Bit 0 is the side-of-ball flag
+    (odd = offense / kicking, even = defense / receiving)."""
+
+    special_category: int
+    """Special-teams category at file offset 0x1F. Zero means this is not a
+    special-teams play."""
+
+    user_category: int
+    """User category byte at file offset 0x20. Bits 5-0 hold the game's play
+    category; bits 7-6 vary across plays in the same category."""
+
+    player_offsets: tuple[int, ...]
+    """11-tuple of u16 player-record offsets relative to file offset 0x08, in
+    slot order: QB, C, LT, LG, RG, RT, TE, RWR, LWR, LHB, RHB."""
+
+    player_headers: tuple[PlayerHeader, ...]
+    """11-tuple of parsed PlayerHeader values, one per slot, in the same order
+    as player_offsets."""
 
     @property
     def is_offensive(self) -> bool:
+        """True if this is an offensive (or kicking-side) play."""
         return self.play_category % 2 == 1
 
     @property
     def is_defensive(self) -> bool:
+        """True if this is a defensive (or receiving-side) play."""
         return self.play_category % 2 == 0
 
     @property
     def is_special_teams(self) -> bool:
+        """True if this is a special-teams play (any non-zero special_category)."""
         return self.special_category != 0
 
     @property
     def category_name(self) -> str | None:
-        """Resolve this play's human-readable category, picking the right lookup table.
+        """Resolve this play's human-readable category name.
 
-        Special-teams plays (`special_category != 0`) map via the special-teams
-        offensive or defensive table by `special_category`. Normal plays mask
-        off the user-defined high bits (`user_category & 0x3F`) before looking
-        up in the offense or defense table. Returns None for unrecognized codes.
+        Special-teams plays (special_category != 0) map via the special-teams
+        offensive or defensive table by special_category. Normal plays mask off
+        the user-defined high bits (user_category & 0x3F) before looking up in
+        the offense or defense table.
+
+        Returns:
+            The category name, or None if the code is unrecognized.
         """
         if self.is_special_teams:
             mapping = SPECIAL_TEAMS_OFFENSIVE_CATEGORIES if self.is_offensive else SPECIAL_TEAMS_DEFENSIVE_CATEGORIES

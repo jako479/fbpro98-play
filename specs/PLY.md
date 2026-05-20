@@ -41,18 +41,18 @@ Slot order (from `fbpro_ply.hsl`): QB, C, LT, LG, RG, RT, TE, RWR, LWR, LHB, RHB
 
 **Special-teams category** (`special_category`): `0x00` = not special teams; otherwise:
 
-| Value  | Offensive (kicking) | Defensive (receiving)  |
-| ------ | ------------------- | ---------------------- |
-| `0x01` | FG/PAT              | FG/PAT Defense         |
-| `0x02` | Kickoff             | Kick Return            |
-| `0x03` | Punt                | Punt Return            |
-| `0x04` | Onside Kick         | Onside Return          |
-| `0x05` | Fake FG Run         | Fake FG Run Defense    |
-| `0x06` | Fake FG Pass        | Fake FG Pass Defense   |
-| `0x07` | Fake Punt Run       | Fake Punt Run Defense  |
-| `0x08` | Fake Punt Pass      | Fake Punt Pass Defense |
-| `0x09` | Free Kick           | Free Kick Return       |
-| `0x0A` | Squib Kick          | Squib Return           |
+| Value  | Offense (kicking) | Defense (receiving)    |
+| ------ | ----------------- | ---------------------- |
+| `0x01` | FG/PAT            | FG/PAT Defense         |
+| `0x02` | Kickoff           | Kick Return            |
+| `0x03` | Punt              | Punt Return            |
+| `0x04` | Onside Kick       | Onside Return          |
+| `0x05` | Fake FG Run       | Fake FG Run Defense    |
+| `0x06` | Fake FG Pass      | Fake FG Pass Defense   |
+| `0x07` | Fake Punt Run     | Fake Punt Run Defense  |
+| `0x08` | Fake Punt Pass    | Fake Punt Pass Defense |
+| `0x09` | Free Kick         | Free Kick Return       |
+| `0x0A` | Squib Kick        | Squib Return           |
 
 Both sides of the same special-teams category share the same `special_category` value.
 
@@ -93,7 +93,7 @@ Defensive categories (bit 0 = 0):
 | 0x32            | Goal Line Pass |
 | 0xFE            | User Specific  |
 
-`0xFF` / `0xFE` (User Specific) is a play saved as Custom + Special. Validated against 2092 offensive and 1879 defensive plays; 2 offensive plays had a base that didn't match their pool directory (likely misfiled).
+`0xFF` / `0xFE` (User Specific) is a play saved as Custom + Special. Validated against 2092 offensive and 1879 defensive plays.
 
 Bit-level encoding within the base:
 
@@ -103,6 +103,8 @@ Bit-level encoding within the base:
 | 1   | 0 = Run, 1 = Pass                                      |
 | 2-3 | 00 = Right, 01 = Left, 10 = Middle, 11 = Razzle Dazzle |
 | 4-5 | 00 = Short, 01 = Medium, 10 = Long, 11 = Goal Line     |
+| 6   | 0/1 = UNKNOWN; 0 for all DEF and vast majority OFF     |
+| 7   | 0/1 = UNKNOWN; 1 for vast majority OFF and DEF         |
 
 ### 2.4 Player Records (variable length, partially understood)
 
