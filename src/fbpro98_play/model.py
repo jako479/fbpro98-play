@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-
 OFFENSIVE_CATEGORIES = {
     0x01: "Run Right",
     0x03: "Pass Short Right",
